@@ -95,24 +95,6 @@ upstreams:
           rate: 1.0
 ```
 
-## Admin UI
-
-Open **http://localhost:8081** for the dashboard.
-Prometheus metrics at **`/metrics`**.
-
-## Project Layout
-
-```
-mockrelay/
-|-- mockrelay/       package
-|-- tests/           pytest suite
-|-- docs/            documentation
-|-- examples/        usage examples
-|-- pyproject.toml
-|-- mockrelay.yaml
-`-- README.md
-```
-
 ## License
 
 MIT
