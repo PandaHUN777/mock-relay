@@ -1,0 +1,38 @@
+﻿listen: "127.0.0.1:8080"
+admin_listen: "127.0.0.1:8081"
+fixtures_dir: "./fixtures"
+mode: record
+latency_ms: 0
+metrics_enabled: true
+sequential: false
+
+redact_headers:
+  - authorization
+  - cookie
+  - x-api-key
+  - stripe-secret-key
+
+normalize_json_paths:
+  - "$.id"
+  - "$.created"
+  - "$.request_id"
+
+error_injection: null
+
+upstreams:
+  stripe:
+    base_url: "https://api.stripe.com"
+    mode: record
+  gh:
+    base_url: "https://api.github.com"
+    mode: record
+  local:
+    base_url: "http://localhost:9000"
+    mode: passthrough
+    routes:
+      "/v1/slow":
+        latency_ms: 800
+      "/v1/fail":
+        error_injection:
+          status: 503
+          rate: 1.0
