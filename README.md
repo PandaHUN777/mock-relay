@@ -105,6 +105,99 @@ returns the fixture with no network access:
 mockrelay serve --mode replay --latency 150
 ```
 
+## Mode precedence
+
+There are four layers of mode and latency settings. Higher layers override
+lower ones. The same rules apply to `latency_ms` and `error_injection`.
+
+From lowest priority to highest:
+
+| Priority | Where | Scope | Example |
+|---|---|---|---|
+| 1 | global in `mockrelay.yaml` | whole proxy | `mode: record` |
+| 2 | `upstreams.<name>.mode` | one upstream | `stripe: { mode: replay }` |
+| 3 | `upstreams.<name>.routes.<prefix>.mode` | one path prefix | `"/v1/charges": { mode: passthrough }` |
+| 4 | `X-MockRelay-Mode` request header | one request | `curl -H "X-MockRelay-Mode: passthrough" ...` |
+| 5 | admin API POST | runtime flip | `curl -X POST .../api/mode/hybrid` |
+
+Layer 5 overwrites layer 1 at runtime; the config file is not rewritten.
+
+### Effective value
+
+For a given request, the effective mode is the highest layer that sets a
+value. If no layer sets a value, layer 1 applies.
+
+Concrete example:
+
+    mode: record
+
+    upstreams:
+      stripe:
+        base_url: "https://api.stripe.com"
+        mode: replay
+        routes:
+          "/v1/charges":
+            mode: passthrough
+
+    GET /gh/users/octocat                        -> record   (global)
+    GET /stripe/v1/customers                     -> replay   (upstream)
+    GET /stripe/v1/charges                       -> passthrough (route)
+    GET /stripe/v1/charges  + header passthrough -> passthrough (header)
+    GET /stripe/v1/charges  + header record      -> record   (header beats route)
+
+### Route prefix matching
+
+Route overrides match by prefix. The longest matching prefix wins. So with:
+
+    routes:
+      "/v1":
+        mode: replay
+      "/v1/charges":
+        mode: passthrough
+
+a request to `/v1/charges` uses `passthrough` because that prefix is
+longer.
+
+### Same for latency_ms
+
+    latency_ms: 0
+
+    upstreams:
+      stripe:
+        latency_ms: 200
+        routes:
+          "/v1/charges":
+            latency_ms: 800
+
+Effective latency:
+
+    GET /gh/users/octocat    -> 0 ms    (global)
+    GET /stripe/v1/customers -> 200 ms  (upstream)
+    GET /stripe/v1/charges   -> 800 ms  (route)
+
+### Same for error_injection
+
+    error_injection:
+      status: 503
+      rate: 1.0
+
+    upstreams:
+      stripe:
+        routes:
+          "/v1/charges":
+            error_injection:
+              status: 429
+              rate: 0.5
+
+`GET /stripe/v1/charges` uses the route's 429 at 50 percent. Everything else
+uses the global 503.
+
+### When in doubt
+
+Run `mockrelay serve` and read the routing table in the startup banner. It
+prints the effective mode for each upstream. The admin UI at
+`http://localhost:8081` also shows live mode and latency.
+
 ## How fixtures are stored
 
 Fixtures are plain JSON files on disk. No database, no opaque binary format.
@@ -294,6 +387,7 @@ upstreams:
 ## License
 
 MIT ? see [LICENSE](LICENSE).
+
 
 
 
