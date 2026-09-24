@@ -18,9 +18,10 @@ from ._13 import _18 as _10
 from ._13 import _30 as _11
 from ._14 import _10 as _12
 from ._12 import _06 as _13
+from ._17 import _02 as _17a
 
 
-def _14(cfg: _07) -> None:
+def _14(cfg: _07, store) -> None:
     _01("M O C K R E L A Y", show_brand=True)
     phost, pport = _13(cfg.listen)
     ahost, aport = _13(cfg.admin_listen)
@@ -55,7 +56,7 @@ def _15(args) -> None:
     metrics = _09()
     state = _10(cfg, store, metrics)
 
-    _14(cfg)
+    _14(cfg, store)
 
     try:
         proxy_srv = _11(state)
@@ -189,3 +190,4 @@ def _40(argv: Optional[List[str]] = None) -> None:
         parser.print_help()
         return
     args.func(args)
+
