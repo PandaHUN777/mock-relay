@@ -30,6 +30,13 @@ def _14(cfg: _07, store) -> None:
     _04("proxy", f"http://{phost}:{pport}")
     _04("admin", f"http://{ahost}:{aport}")
     _04("fixtures", str(cfg.fixtures_dir.resolve()))
+    counts = _17a(store)
+    if counts:
+        for name, n in counts.items():
+            label = "fixture" if n == 1 else "fixtures"
+            _04("  " + name, str(n) + " " + label)
+    else:
+        _04("  (empty)", "no fixtures recorded yet")
     _04("upstreams", ", ".join(cfg.upstreams.keys()) or "(none)")
     print()
     _03("upstream routes")
@@ -190,4 +197,5 @@ def _40(argv: Optional[List[str]] = None) -> None:
         parser.print_help()
         return
     args.func(args)
+
 
