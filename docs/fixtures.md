@@ -38,8 +38,29 @@ scrubbed for `Bearer`, `sk_live_*`, `sk_test_*`, `ghp_*`.
 
 ## Normalization
 
-Fields listed in `normalize_json_paths` become `{{NORMALIZED}}`. That keeps
-volatile values from breaking replay matching.
+Fields listed in `normalize_json_paths` become `{{NORMALIZED}}` at record
+time. That keeps volatile values from breaking replay matching.
+
+Config:
+
+    normalize_json_paths:
+      - "$.id"
+      - "$.created_at"
+      - "$.meta.request_id"
+
+Upstream response:
+
+    { "id": 583231, "login": "octocat", "created_at": "2011-01-25T18:44:36Z" }
+
+Stored fixture:
+
+    { "id": "{{NORMALIZED}}", "login": "octocat", "created_at": "{{NORMALIZED}}" }
+
+Nested paths walk into objects. Array paths apply to every element. Each
+fixture records what was normalized in its `normalize` list.
+
+Why a placeholder instead of deletion: keeps the response shape intact so
+clients that expect the key still work.
 
 ## Matching
 
@@ -54,3 +75,4 @@ Highest-specificity match wins.
 
 Set `sequential: true` in config. The Nth matching call returns the Nth
 fixture. Useful for pagination and state machines.
+

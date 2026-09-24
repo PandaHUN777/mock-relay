@@ -56,7 +56,7 @@ to use a different file.
 | metrics_enabled | bool | expose /metrics on admin |
 | sequential | bool | Nth call returns Nth matching fixture |
 | redact_headers | list | header names replaced with {{SECRET}} |
-| normalize_json_paths | list | JSON paths replaced with {{NORMALIZED}} |
+| normalize_json_paths | list | JSON paths replaced with {{NORMALIZED}} at record time. Dot notation, walks arrays. Example: ["$?.id", "$?.created_at"] |
 | error_injection | map | global error injection |
 | upstreams | map | name -> {base_url, mode, routes} |
 
@@ -73,3 +73,4 @@ error_injection.
 | NO_COLOR | disable color |
 | SWIVEL_FORCE_COLOR | force color even without tty |
 | SWIVEL_BRAND_KEY | override the brand blob key |
+
