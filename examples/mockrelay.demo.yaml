@@ -1,0 +1,16 @@
+{
+  "name": "demo",
+  "listen": "127.0.0.1:8080",
+  "admin_listen": "127.0.0.1:8081",
+  "fixtures_dir": "./fixtures",
+  "mode": "record",
+  "latency_ms": 0,
+  "redact_headers": ["authorization", "cookie", "x-api-key"],
+  "normalize_json_paths": ["$.created", "$.request_id"],
+  "upstreams": {
+    "local": {
+      "base_url": "http://localhost:9000",
+      "mode": "record"
+    }
+  }
+}
