@@ -1,0 +1,10 @@
+site_name: MockRelay
+site_url: https://sswivell.github.io/mock-relay/
+repo_url: https://github.com/sswivell/mock-relay
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: light blue
+      accent: cyan
