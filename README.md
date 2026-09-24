@@ -105,6 +105,129 @@ returns the fixture with no network access:
 mockrelay serve --mode replay --latency 150
 ```
 
+## How fixtures are stored
+
+Fixtures are plain JSON files on disk. No database, no opaque binary format.
+
+### Location
+
+By default they live under `./fixtures` next to `mockrelay.yaml`. Override
+with the `fixtures_dir` key in config.
+
+    fixtures/
+      gh/
+        gh-get-9ab7c12d3e4f.json
+        gh-get-4f2c81e0a1b2.json
+      stripe/
+        stripe-post-7d8e9f0a1c2d.json
+      local/
+        local-get-3a4b5c6d7e8f.json
+
+One file per recorded request/response pair. The filename is
+`<upstream>-<method>-<hash>.json` where `<hash>` is a short SHA1 of the
+match key (method + path + query + body subset). Two requests that would match
+the same fixture collide on purpose.
+
+### File shape
+
+    {
+      "id": "gh-get-9ab7c12d3e4f",
+      "upstream": "gh",
+      "match": {
+        "method": "GET",
+        "path": "/users/octocat",
+        "query_subset": {},
+        "body_contains": null
+      },
+      "request": {
+        "method": "GET",
+        "path": "/users/octocat",
+        "query": {},
+        "headers": {
+          "User-Agent": "curl/8.4.0",
+          "Authorization": "{{SECRET}}"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-RateLimit-Remaining": "59"
+        },
+        "body": {
+          "login": "octocat",
+          "id": "{{NORMALIZED}}",
+          "created_at": "{{NORMALIZED}}"
+        }
+      },
+      "normalize": ["$.id", "$.created_at"],
+      "recorded_at": "2026-09-23T04:12:00Z",
+      "call_index": 0
+    }
+
+Field notes:
+
+| Field | Meaning |
+|---|---|
+| `id` | stable hash-based identifier, unique per upstream |
+| `upstream` | key from `upstreams` in config |
+| `match` | what a live request must satisfy to hit this fixture |
+| `request` | original request, headers redacted |
+| `response` | original response, volatile fields normalized |
+| `normalize` | JSON paths replaced with `{{NORMALIZED}}` |
+| `recorded_at` | ISO 8601 UTC timestamp |
+| `call_index` | used in sequential mode for Nth-call behavior |
+
+### Redaction
+
+Headers listed under `redact_headers` are stored as `{{SECRET}}`. Bodies
+are scanned for `Bearer` tokens, `sk_live_*`, `sk_test_*`, and `ghp_*`
+and replaced with `{{SECRET}}`. Commit fixtures to git without leaking keys.
+
+### Normalization
+
+Fields listed under `normalize_json_paths` are replaced with
+`{{NORMALIZED}}` at record time. That means volatile values (IDs, timestamps,
+nonces, request IDs) do not change the fixture on every record.
+
+### Matching
+
+Replay and hybrid mode match by:
+
+1. HTTP method must be equal.
+2. Path must be equal.
+3. Every key in `match.query_subset` must be present and equal.
+4. Every key in `match.body_contains` must be present and equal
+   (recursive for nested objects).
+
+Then the highest-specificity match wins ? more `body_contains` keys beats
+fewer, then more query keys beats fewer.
+
+Bodies themselves are not hashed for lookup. Matching is on structure, so a
+request with a different order of JSON keys, or with additional fields your
+fixture did not pin down, still matches.
+
+### Sequential mode
+
+With `sequential: true` in config, the Nth matching call returns the Nth
+fixture (sorted by `call_index`). The counter resets on server restart. Use
+it for pagination, polling, or state-machine tests.
+
+### Editing fixtures
+
+They are just JSON. Open one, change a status code to 500, hand-edit a body to
+inject an edge case, or delete the file to force a re-record. The proxy reads
+from disk on every request, so edits apply immediately without a restart.
+
+### Sharing fixtures
+
+Commit `fixtures/` to git. Teammates get the same replay environment by
+pulling. For per-project overrides, use `fixtures_dir` in a project-local
+`mockrelay.yaml`.
+
+Full reference: `docs/fixtures.md`.
+
 ## Modes
 
 | Mode | Behavior |
@@ -171,5 +294,6 @@ upstreams:
 ## License
 
 MIT ? see [LICENSE](LICENSE).
+
 
 
