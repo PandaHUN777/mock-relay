@@ -1,7 +1,10 @@
 # MockRelay
 
 ## Preview
-<img src="https://files.catbox.moe/v9x6sc.png" alt="MockRelay preview">
+
+<p align="center">
+  <img src="https://files.catbox.moe/v9x6sc.png" alt="MockRelay serving in a terminal">
+</p>
 
 ## Install
 
@@ -167,5 +170,6 @@ upstreams:
 
 ## License
 
-MIT
+MIT ? see [LICENSE](LICENSE).
+
 
