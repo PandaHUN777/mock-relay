@@ -15,12 +15,49 @@ Requires **Python 3.10+** and `pyyaml`.
 
 ## Quickstart
 
+Five steps from zero to a recorded fixture.
+
+### 1. Scaffold a config
+
 ```bash
 mockrelay init
+```
+
+This writes a starter `mockrelay.yaml` in the current directory. It already
+contains three example upstreams (`stripe`, `gh`, `local`) you can edit
+or delete.
+
+### 2. Edit the config for your upstreams
+
+Open `mockrelay.yaml` and set the base URLs you actually want to proxy.
+Each key under `upstreams` becomes a URL prefix.
+
+```yaml
+upstreams:
+  stripe:
+    base_url: "https://api.stripe.com"
+    mode: record
+  gh:
+    base_url: "https://api.github.com"
+    mode: record
+```
+
+The key name (`stripe`, `gh`) is what appears in the proxy URL. So
+`upstreams.stripe` becomes reachable at `http://localhost:8080/stripe/...`.
+
+### 3. Start the proxy
+
+```bash
 mockrelay serve
 ```
 
-Point your app at the proxy by swapping the base URL:
+You will see the routing table, the fixtures directory, and a health banner.
+The admin UI is at http://localhost:8081.
+
+### 4. Point your app at the proxy
+
+Swap the base URL in your app or environment. Only the host and port change;
+the path and query string stay the same.
 
 | Real | Local |
 |---|---|
@@ -30,6 +67,39 @@ Point your app at the proxy by swapping the base URL:
 ```bash
 export STRIPE_BASE_URL=http://localhost:8080/stripe
 export GITHUB_API_URL=http://localhost:8080/gh
+```
+
+The mapping is 1:1 with the `upstreams` block above:
+
+| Config key | Path prefix | Real base URL |
+|---|---|---|
+| `stripe` | `/stripe/` | `https://api.stripe.com` |
+| `gh` | `/gh/` | `https://api.github.com` |
+
+So `GET https://api.github.com/users/octocat` becomes
+`GET http://localhost:8080/gh/users/octocat`.
+
+### 5. Make a request and inspect the fixture
+
+Run any request through the proxy:
+
+```bash
+curl http://localhost:8080/gh/users/octocat
+```
+
+A JSON fixture is written to `fixtures/gh/`. List what you have:
+
+```bash
+mockrelay list
+mockrelay list --upstream gh
+mockrelay stats
+```
+
+Stop the server with Ctrl-C, then restart in replay mode. The same curl now
+returns the fixture with no network access:
+
+```bash
+mockrelay serve --mode replay --latency 150
 ```
 
 ## Modes
@@ -98,3 +168,4 @@ upstreams:
 ## License
 
 MIT
+

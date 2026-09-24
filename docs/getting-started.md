@@ -11,7 +11,26 @@ Requires Python 3.10+ and pyyaml.
 ## First run
 
     mockrelay init
+
+This writes a starter mockrelay.yaml. It ships with three example upstreams
+(stripe, gh, local) that you can keep, edit, or delete.
+
+Open mockrelay.yaml and confirm the upstreams block. Each key becomes a URL
+prefix on the proxy:
+
+    upstreams:
+      gh:
+        base_url: "https://api.github.com"
+        mode: record
+
+The key gh means http://localhost:8080/gh/... forwards to
+https://api.github.com/...
+
+Then start the proxy:
+
     mockrelay serve
+
+You will see the routing table, fixture counts, and the admin UI URL.
 
 Open http://localhost:8081 for the admin UI.
 
@@ -54,3 +73,4 @@ Then replay:
 - `docs/modes.md` for record/replay/passthrough/hybrid
 - `docs/fixtures.md` for the fixture format
 - `docs/recipes.md` for real workflows
+
