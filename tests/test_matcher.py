@@ -2,7 +2,7 @@ from mockrelay._06 import _01, _04, _05, _06
 from mockrelay._09 import _03 as _match, _05 as _best
 
 
-def _10():
+def test_01():
     m = _01(method="GET", path="/x", query_subset={"a": ["1"]})
     fx = _06(id="1", upstream="u", match=m,
              request=_04(method="GET", path="/x"),
@@ -11,7 +11,7 @@ def _10():
     assert not _match(fx, "GET", "/x", {"a": ["2"]}, None)
 
 
-def _11():
+def test_02():
     fixtures = [
         _06(id="a", upstream="u",
             match=_01(method="GET", path="/x"),

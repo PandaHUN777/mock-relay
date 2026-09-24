@@ -2,7 +2,7 @@ from mockrelay._06 import _01, _04, _05, _06
 from mockrelay._09 import _06 as _seq
 
 
-def _10():
+def test_01():
     fixtures = [
         _06(id="a", upstream="u", call_index=0,
             match=_01(method="GET", path="/x"),

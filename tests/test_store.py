@@ -5,7 +5,7 @@ from mockrelay._06 import _01, _04, _05, _06
 from mockrelay._10 import _04 as _store
 
 
-def _10():
+def test_01():
     with tempfile.TemporaryDirectory() as d:
         s = _store(Path(d))
         m = _01(method="GET", path="/x")
@@ -18,7 +18,7 @@ def _10():
         assert loaded[0].response.body == {"ok": True}
 
 
-def _11():
+def test_02():
     with tempfile.TemporaryDirectory() as d:
         s = _store(Path(d))
         m = _01(method="GET", path="/x")
