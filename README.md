@@ -1,7 +1,19 @@
 # MockRelay
 
-## Preview
-<img src="https://files.catbox.moe/v9x6sc.png" alt="MockRelay preview">
+<p align="center">
+  <img src="https://files.catbox.moe/v9x6sc.png" alt="MockRelay preview">
+</p>
+
+<p align="center">
+  <a href="https://github.com/sswivell/mock-relay/actions"><img src="https://img.shields.io/github/actions/workflow/status/sswivell/mock-relay/ci.yml?branch=main&label=ci" alt="CI"></a>
+  <a href="https://pypi.org/project/mockrelay/"><img src="https://img.shields.io/pypi/v/mockrelay" alt="PyPI"></a>
+  <a href="https://github.com/sswivell/mock-relay/stargazers"><img src="https://img.shields.io/github/stars/sswivell/mock-relay" alt="Stars"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e" alt="License"></a>
+</p>
+
+<p align="center">
+  <b>Record real HTTP traffic. Replay it forever.</b>
+</p>
 
 ## Install
 
@@ -11,8 +23,6 @@ cd mock-relay
 pip install -e .
 ```
 
-Requires **Python 3.10+** and `pyyaml`.
-
 ## Quickstart
 
 ```bash
@@ -20,81 +30,37 @@ mockrelay init
 mockrelay serve
 ```
 
-Point your app at the proxy by swapping the base URL:
+Point your app at the proxy:
 
 | Real | Local |
 |---|---|
 | `https://api.stripe.com` | `http://localhost:8080/stripe` |
 | `https://api.github.com` | `http://localhost:8080/gh` |
 
-```bash
-export STRIPE_BASE_URL=http://localhost:8080/stripe
-export GITHUB_API_URL=http://localhost:8080/gh
-```
-
 ## Modes
 
 | Mode | Behavior |
 |---|---|
-| `record` | Forward to upstream, save every request/response as a fixture |
-| `replay` | Serve from fixtures only - never touches the network |
+| `record` | Forward, save each request/response as a fixture |
+| `replay` | Serve from fixtures only |
 | `passthrough` | Forward only, no recording |
-| `hybrid` | Serve from fixtures if matched, otherwise go live and record |
+| `hybrid` | Fixtures if matched, else live + record |
 
 ## CLI
 
 ```bash
 mockrelay serve
 mockrelay serve --mode replay
-mockrelay serve --latency 200
 mockrelay record
 mockrelay replay --latency 150
 mockrelay list
+mockrelay stats
 ```
 
-## Config
+## Docs
 
-```yaml
-listen: "127.0.0.1:8080"
-admin_listen: "127.0.0.1:8081"
-fixtures_dir: "./fixtures"
-mode: record
-latency_ms: 0
-metrics_enabled: true
-sequential: false
-
-redact_headers:
-  - authorization
-  - cookie
-  - x-api-key
-  - stripe-secret-key
-
-normalize_json_paths:
-  - "$.id"
-  - "$.created"
-  - "$.request_id"
-
-error_injection: null
-
-upstreams:
-  stripe:
-    base_url: "https://api.stripe.com"
-    mode: record
-  gh:
-    base_url: "https://api.github.com"
-    mode: record
-  local:
-    base_url: "http://localhost:9000"
-    mode: passthrough
-    routes:
-      "/v1/slow":
-        latency_ms: 800
-      "/v1/fail":
-        error_injection:
-          status: 503
-          rate: 1.0
-```
+https://sswivell.github.io/mock-relay/
 
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE).
