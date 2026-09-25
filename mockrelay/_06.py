@@ -12,12 +12,19 @@ class _01:
     match_mode: Optional[str] = None
     fuzzy_threshold: Optional[float] = None
     ignore_case: Optional[bool] = None
+    priority: Optional[int] = None
 
     def _02(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
 
     @classmethod
     def _03(cls, d: Dict[str, Any]) -> "_01":
+        prio = d.get("priority")
+        if prio is not None:
+            try:
+                prio = int(prio)
+            except (TypeError, ValueError):
+                prio = None
         return cls(
             method=d["method"],
             path=d["path"],
@@ -26,6 +33,7 @@ class _01:
             match_mode=d.get("match_mode"),
             fuzzy_threshold=d.get("fuzzy_threshold"),
             ignore_case=d.get("ignore_case"),
+            priority=prio,
         )
 
 

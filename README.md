@@ -69,6 +69,20 @@ keys:
 }
 ```
 
+Candidates are ranked, not just filtered. `match_priority` reorders the
+criteria, so you can put a query match ahead of the path when that is what
+identifies the request:
+
+```yaml
+match_priority: [query, path, body, literal]   # default is [path, body, query, literal]
+```
+
+A fixture can also set an integer `priority` to jump the queue entirely:
+
+```json
+"match": { "method": "GET", "path": "wildcard:/files/**", "priority": 10 }
+```
+
 Check a request against the stored fixtures without starting a server:
 
 ```bash

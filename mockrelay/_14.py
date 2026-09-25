@@ -125,6 +125,7 @@ def _05(state: _01):
                     "fuzzy_threshold": opts.threshold,
                     "ignore_case": opts.ignore_case,
                     "fuzzy_enabled": opts.fuzzy_enabled,
+                    "match_priority": list(opts.order),
                     "results": rows,
                 })
             if self.path.startswith("/api/fixtures"):

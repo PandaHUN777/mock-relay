@@ -37,6 +37,14 @@ them, so the most specific fixture wins.
 
 `_22` is the entry point used by replay, `/api/match`, and `mockrelay match`.
 It delegates to `_21` per fixture, which returns a per-check breakdown for
-diagnostics, then sorts by matched, score, and ID.
+diagnostics, then sorts by matched, rank, and ID.
+
+Ranking uses two separate values. `_36` returns the rank tuple,
+`(priority, *criterion values in the configured order)`, and that is what
+decides placement. `_04` returns the flat score reported in
+`X-MockRelay-Score` and in diagnostics, which stays fixed-width so tabular
+output renders. Reordering `match_priority` therefore changes the winner
+without changing the score, so compare `rank` rather than `score` when asking
+why one fixture won.
 
 See [Smart matching](matching.md).

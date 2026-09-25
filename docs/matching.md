@@ -15,7 +15,9 @@ matching, and how ties are broken.
 | `wildcard` | Glob patterns with `*`, `?`, and `[...]`. |
 | `regex` | Python regular expressions. |
 | `fuzzy` | Similarity scoring against `fuzzy_threshold`. |
-| `off` | Only the stored `match` fields are honoured; no smart features. |
+
+An unrecognised mode falls back to the enclosing scope's mode rather than
+failing, so a typo inherits the default instead of breaking matching.
 
 `auto` never fuzzy-matches a bare path. Fuzzy matching in `auto` happens only
 when the pattern is explicitly prefixed, such as `fuzzy:/customer/prof`. This
@@ -55,16 +57,66 @@ Only `*` and `[` make `auto` treat a path as a wildcard on their own.
 
 ## Specificity
 
-Candidates are ranked, not merely filtered. The ordering is:
+Candidates are ranked, not merely filtered. Four criteria take part:
 
-1. Strategy band: `exact` > `wildcard` > `regex` > `fuzzy`.
-2. Number of additional constraints satisfied, such as `body_contains` and
-   `query_subset`.
-3. Path rank, so a more literal pattern beats a more permissive one.
-4. Fixture ID, so the result is stable across runs.
+| Criterion | Higher when |
+|---|---|
+| `path` | the strategy band is stronger: `exact` > `wildcard` > `regex` > `fuzzy` |
+| `body` | more `body_contains` keys are constrained |
+| `query` | more `query_subset` keys are constrained |
+| `literal` | the pattern contains more non-wildcard characters |
 
-This means `GET /users/7` wins over `wildcard:/users/*` when both are present,
-even though the wildcard also matches.
+They are compared in order, most significant first, and the fixture ID breaks
+any remaining tie so results are stable across runs. With the default order,
+`GET /users/7` wins over `wildcard:/users/*`.
+
+## Match priority
+
+`match_priority` reorders those criteria, so you can decide what matters most.
+The list is read left to right, and any criterion you leave out is appended in
+its default position rather than being ignored.
+
+    match_priority: [path, body, query, literal]   # default
+
+Put `query` first and an exact query match outranks a better path:
+
+    match_priority: [query, path, body, literal]
+
+Against `GET /users/7?page=1` with both of these fixtures:
+
+| Fixture | Match | Wins when |
+|---|---|---|
+| `"path": "/users/7"` | exact path, no query constraint | `path` comes first |
+| `"path": "wildcard:/users/*", "query_subset": {"page": ["1"]}` | wildcard path, exact query | `query` comes first |
+
+The order is fully reversible, so a weaker path can outrank a stronger one.
+That is useful when a query parameter is more identifying than the path, and
+worth avoiding when it is not.
+
+`match_priority` also accepts a comma-separated string, and is resolvable
+globally, per upstream, and per route like the other matching settings.
+Unrecognised names are ignored.
+
+### Per-fixture priority
+
+A fixture can carry an integer `priority` that outranks the criteria entirely.
+Higher wins, and the default is `0`.
+
+    "match": {
+      "method": "GET",
+      "path": "wildcard:/files/**",
+      "priority": 10
+    }
+
+That fixture is served ahead of an exact-path fixture when both match. Use
+negative values to push a fixture down, and keep the value small: anything
+above the criteria range is equivalent. When a fixture with a `priority` is
+served, the response carries an `X-MockRelay-Priority` header.
+
+### Sequential replay
+
+With `sequential: true`, fixtures are cycled in `call_index` order instead, so
+`match_priority` and `priority` do not apply.
 
 ## JSON-aware bodies
 
@@ -147,6 +199,7 @@ Every replay response carries:
 | `X-MockRelay-Match` | strategy that won |
 | `X-MockRelay-Fixture` | ID of the fixture that was used |
 | `X-MockRelay-Score` | composite score, for comparing candidates |
+| `X-MockRelay-Priority` | fixture `priority`, only when it is non-zero |
 
 A 501 response includes the active `match_mode` and the nearest fixture IDs.
 
@@ -158,4 +211,6 @@ Two tools give the same answer without starting a server:
     curl "http://127.0.0.1:8081/api/match?method=GET&path=/users/7"
 
 Both list every candidate with a per-check breakdown of method, path, query,
-and body, so you can see exactly which condition failed.
+and body, so you can see exactly which condition failed. Each result also
+carries `priority` and `rank`, the ordered criterion values that decided the
+placement, and the resolved order is shown as `match_priority`.

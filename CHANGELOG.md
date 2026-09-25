@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `match_priority` config key to reorder the matching criteria `path`, `body`, `query`, and `literal`, fully reversibly, resolvable globally, per upstream, and per route
+- Per-fixture integer `match.priority`, which outranks the specificity criteria; higher wins, negative values demote
+- `X-MockRelay-Priority` response header when the winning fixture sets a non-zero priority
+- `prio` column in `mockrelay match`, plus `priority` and `rank` in `/api/match` results
+
+### Changed
+
+- Candidate ordering now uses a rank tuple instead of the flat score, so reordering `match_priority` no longer inflates the reported `X-MockRelay-Score`
+
+### Fixed
+
+- Documented `match_mode: off`, which was never a valid mode; removed in favour of describing the fallback to the enclosing scope
+
 ## [0.3.0] - 2026-09-25
 
 ### Added

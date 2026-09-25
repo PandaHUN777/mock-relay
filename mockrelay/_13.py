@@ -170,6 +170,8 @@ def _19(state: _18):
                 hdrs["X-MockRelay-Match"] = str(info.get("strategy") or "exact")
                 hdrs["X-MockRelay-Fixture"] = str(fid)
                 hdrs["X-MockRelay-Score"] = str(info.get("score") or 0)
+                if int(info.get("priority") or 0):
+                    hdrs["X-MockRelay-Priority"] = str(info["priority"])
             self._28(rec.status, _14(rec.body), hdrs)
 
         def _28(self, status: int, body: bytes, headers: Dict[str, str]):

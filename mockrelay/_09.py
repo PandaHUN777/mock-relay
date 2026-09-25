@@ -31,6 +31,8 @@ _OPS = frozenset((
 _BAND = {"exact": 4, "wildcard": 3, "regex": 2, "fuzzy": 1}
 _RANK = {"exact": 1000, "case": 960, "path": 950,
          "wildcard": 600, "regex": 400, "fuzzy": 100}
+_CRITERIA = ("path", "body", "query", "literal")
+_DEFAULT_ORDER = ("path", "body", "query", "literal")
 _TYPES: Dict[str, Any] = {
     "string": str, "number": (int, float), "integer": int, "float": float,
     "bool": bool, "null": type(None), "array": (list, tuple), "object": dict,
@@ -54,6 +56,7 @@ class _07:
     threshold: float = 0.86
     ignore_case: bool = False
     fuzzy_enabled: bool = False
+    order: Tuple[str, ...] = _DEFAULT_ORDER
 
 
 def _08(s: Any) -> str:
@@ -428,6 +431,8 @@ def _21(fx: _01, method: str, path: str, query: Dict[str, List[str]],
         "strategy": kind if p_ok else "miss",
         "path_rank": prank or 0,
         "score": _04(fx, base) if matched else 0,
+        "priority": int(getattr(fx.match, "priority", None) or 0),
+        "rank": _36(fx, base) if matched else (),
         "status": fx.response.status,
         "checks": checks,
     }
@@ -437,7 +442,10 @@ def _22(fixtures: List[_01], method: str, path: str,
         query: Dict[str, List[str]], body: Any,
         opts: Optional[_07] = None) -> List[Dict[str, Any]]:
     rows = [_21(f, method, path, query, body, opts) for f in fixtures]
-    rows.sort(key=lambda r: (0 if r["matched"] else 1, -r["score"], r["id"]))
+    rows.sort(key=lambda r: r["id"])
+    rows.sort(key=lambda r: (r["rank"] if r["matched"] else ()),
+              reverse=True)
+    rows.sort(key=lambda r: 0 if r["matched"] else 1)
     return rows
 
 
@@ -459,7 +467,26 @@ def _23(base: Optional[_07], m: Any) -> _07:
         threshold=min(max(thr, b.threshold, 0.0), 1.0),
         ignore_case=b.ignore_case if ic is None else bool(ic),
         fuzzy_enabled=b.fuzzy_enabled or mode == "fuzzy",
+        order=b.order,
     )
+
+
+def _26_order(v: Any) -> Tuple[str, ...]:
+    if not v:
+        return _DEFAULT_ORDER
+    if isinstance(v, str):
+        v = [p.strip() for p in v.split(",")]
+    if not isinstance(v, (list, tuple)):
+        return _DEFAULT_ORDER
+    out: List[str] = []
+    for item in v:
+        name = str(item or "").strip().lower()
+        if name in _CRITERIA and name not in out:
+            out.append(name)
+    for name in _CRITERIA:
+        if name not in out:
+            out.append(name)
+    return tuple(out)
 
 
 def _24(e: Any, a: Any, opts: Optional[_07] = None,
@@ -522,6 +549,7 @@ def _29(d: Optional[Dict[str, Any]] = None) -> _07:
         threshold=min(max(thr, 0.0), 1.0),
         ignore_case=bool(src.get("ignore_case", False)),
         fuzzy_enabled=bool(src.get("fuzzy_enabled", False)) or mode == "fuzzy",
+        order=_26_order(src.get("match_priority")),
     )
 
 
@@ -536,6 +564,20 @@ def _03(fx: _01, method: str, path: str, query: Dict[str, List[str]],
     return bool(_21(fx, method, path, query, body, opts)["matched"])
 
 
+def _30_parts(fx: _01, opts: Optional[_07] = None) -> List[int]:
+    m = fx.match
+    o = _23(opts, m)
+    kind, body = _11(getattr(m, "path", ""), o.mode)
+    parts: Dict[str, int] = {
+        "path": _BAND.get(kind, 0),
+        "body": min(len(m.body_contains or {}), 999),
+        "query": min(len(m.query_subset or {}), 999),
+        "literal": min(len(_META_RE.sub("", body)), 999),
+    }
+    order = o.order or _DEFAULT_ORDER
+    return [parts.get(name, 0) for name in order]
+
+
 def _04(fx: _01, opts: Optional[_07] = None) -> int:
     m = fx.match
     o = _23(opts, m)
@@ -548,13 +590,19 @@ def _04(fx: _01, opts: Optional[_07] = None) -> int:
     return score
 
 
+def _36(fx: _01, opts: Optional[_07] = None) -> Tuple[int, ...]:
+    prio = getattr(fx.match, "priority", None)
+    return (int(prio or 0),) + tuple(_30_parts(fx, opts))
+
+
 def _05(fixtures: List[_01], method: str, path: str,
         query: Dict[str, List[str]], body: Any,
         opts: Optional[_07] = None) -> Optional[_01]:
     cands = [f for f in fixtures if _03(f, method, path, query, body, opts)]
     if not cands:
         return None
-    cands.sort(key=lambda f: (-_04(f, opts), f.call_index, f.id))
+    cands.sort(key=lambda f: (f.call_index, f.id))
+    cands.sort(key=lambda f: _36(f, opts), reverse=True)
     return cands[0]
 
 
