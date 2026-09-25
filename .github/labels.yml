@@ -1,11 +1,16 @@
 # Canonical label set for MockRelay.
 #
-# These are the labels the project relies on. `good first issue` and
-# `help wanted` are what CONTRIBUTING.md points newcomers at, so keep both.
-# Apply with:
+# `good first issue` and `help wanted` are what CONTRIBUTING.md points
+# newcomers at, so keep both. The rest of the GitHub defaults are retained
+# rather than deleted, so this file mirrors what the repository actually has.
 #
-#   gh label create "good first issue" -c 7057ff -d "Small, well-scoped, and a good starting point"
-#   gh label sync --yes   # no-op placeholder; apply manually or via an action
+# Apply or update the whole set with:
+#
+#   python scripts/sync_labels.py
+#
+# or by hand, per label:
+#
+#   gh label create "good first issue" -c 7057ff -d "description" --force
 
 - name: good first issue
   color: 7057ff
@@ -46,3 +51,21 @@
 - name: roadmap
   color: 5319e7
   description: Tracked on ROADMAP.md
+
+# GitHub defaults, kept.
+
+- name: accessibility
+  color: f143ab
+  description: Barrier affecting people with disabilities
+
+- name: duplicate
+  color: cfd3d7
+  description: This issue or pull request already exists
+
+- name: invalid
+  color: e4e669
+  description: This does not seem right
+
+- name: wontfix
+  color: ffffff
+  description: This will not be worked on
