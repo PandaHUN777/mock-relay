@@ -94,6 +94,15 @@ mockrelay stats
 
 https://sswivell.github.io/mock-relay/
 
+## Contributing
+
+New here? Start with the issues labelled
+[good first issue](https://github.com/sswivell/mock-relay/labels/good%20first%20issue).
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - setup, tests, and a map of the codebase
+- [ROADMAP.md](ROADMAP.md) - what is being worked on
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
 ## License
 
 MIT - see [LICENSE](LICENSE).

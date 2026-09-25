@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Usage question
+    url: https://github.com/sswivell/mock-relay/issues/new?template=question.md&labels=question
+    about: How do I configure or use MockRelay? Use the question template.
+  - name: Good first issues
+    url: https://github.com/sswivell/mock-relay/labels/good%20first%20issue
+    about: Small, well-scoped tasks that are a good starting point.
+  - name: Roadmap
+    url: https://github.com/sswivell/mock-relay/blob/main/ROADMAP.md
+    about: What is stable, what is being built, and where to help.
