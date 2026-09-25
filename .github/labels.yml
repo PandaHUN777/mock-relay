@@ -1,0 +1,48 @@
+# Canonical label set for MockRelay.
+#
+# These are the labels the project relies on. `good first issue` and
+# `help wanted` are what CONTRIBUTING.md points newcomers at, so keep both.
+# Apply with:
+#
+#   gh label create "good first issue" -c 7057ff -d "Small, well-scoped, and a good starting point"
+#   gh label sync --yes   # no-op placeholder; apply manually or via an action
+
+- name: good first issue
+  color: 7057ff
+  description: Small, well-scoped, and a good starting point for a first PR
+
+- name: help wanted
+  color: 008672
+  description: Larger task that needs discussion or a more experienced contributor
+
+- name: bug
+  color: d73a4a
+  description: Something does not behave as documented
+
+- name: enhancement
+  color: a2eeef
+  description: New feature or improvement to an existing one
+
+- name: documentation
+  color: 0075ca
+  description: Docs, examples, or README
+
+- name: tests
+  color: bfd4f2
+  description: Test coverage work
+
+- name: ci
+  color: c5def5
+  description: Workflows, packaging, and release automation
+
+- name: refactor
+  color: c2e0c6
+  description: Behaviour-preserving internal cleanup
+
+- name: question
+  color: d876e3
+  description: Usage question rather than a report of a defect
+
+- name: roadmap
+  color: 5319e7
+  description: Tracked on ROADMAP.md
