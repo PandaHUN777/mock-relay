@@ -53,3 +53,6 @@ method, path, query, and body.
 | `-u`, `--upstream` | all | limit to one upstream |
 | `-q`, `--query` | none | repeatable `key=value` |
 | `-b`, `--body` | none | JSON body, or a literal string |
+
+The resolved `match_priority` order is printed above the table, and each row
+shows its `prio` column so an overridden fixture is visible at a glance.

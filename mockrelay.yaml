@@ -11,6 +11,7 @@ match_mode: auto
 fuzzy_threshold: 0.86
 ignore_case: false
 fuzzy_enabled: false
+match_priority: [path, body, query, literal]
 smart_record_paths: true
 
 redact_headers:

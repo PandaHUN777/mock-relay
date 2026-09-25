@@ -7,6 +7,7 @@ from mockrelay._09 import _22 as rank
 from mockrelay._09 import _25 as smartize
 from mockrelay._09 import _28 as strategies
 from mockrelay._09 import _29 as build
+from mockrelay._09 import _26_order as _order
 from mockrelay._09 import _03 as _match
 from mockrelay._09 import _05 as _best
 from mockrelay._09 import _06 as _seq
@@ -272,3 +273,99 @@ def test_22_literal_question_mark_is_not_a_wildcard():
     pat = "/search?page=2"
     assert scalar(pat, pat, o, "auto") is not None
     assert scalar(pat, "/searchXpage=2", o, "auto") is None
+
+
+def test_23_order_normalization():
+    assert _order(None) == ("path", "body", "query", "literal")
+    assert _order([]) == ("path", "body", "query", "literal")
+    assert _order(["query", "path"]) == ("query", "path", "body", "literal")
+    assert _order("query,path") == ("query", "path", "body", "literal")
+    assert _order(["nope", "body"]) == ("body", "path", "query", "literal")
+    assert _order(["path", "path"]) == ("path", "body", "query", "literal")
+    assert _order(12345) == ("path", "body", "query", "literal")
+    assert build({"match_priority": ["query", "path"]}).order == (
+        "query", "path", "body", "literal")
+    assert build().order == ("path", "body", "query", "literal")
+
+
+def test_24_query_match_outranks_wildcard_when_ordered():
+    fixtures = [
+        _fx("wild_q", "/users/*", query_subset={"page": ["1"]}),
+        _fx("exact", "/users/7"),
+    ]
+    q = {"page": ["1"]}
+    assert _best(fixtures, "GET", "/users/7", q, None,
+                 Opts()).id == "exact"
+    assert _best(fixtures, "GET", "/users/7", q, None,
+                 Opts(order=_order(["query", "path"]))).id == "wild_q"
+    assert build({"match_priority": ["query", "path"]}).order[0] == "query"
+
+
+def test_25_body_ordered_first():
+    fixtures = [
+        _fx("plain", "/x"),
+        _fx("body", "/x", body_contains={"a": 1}),
+    ]
+    assert _best(fixtures, "GET", "/x", {}, {"a": 1}, Opts()).id == "body"
+    o = Opts(order=("body", "path", "query", "literal"))
+    assert _best(fixtures, "GET", "/x", {}, {"a": 1}, o).id == "body"
+
+
+def test_26_priority_overrides_criteria():
+    fixtures = [
+        _fx("exact", "/users/7"),
+        _fx("pinned", "/users/*", priority=10),
+        _fx("sunk", "/users/7", priority=-5),
+    ]
+    o = Opts()
+    assert _best(fixtures, "GET", "/users/7", {}, None, o).id == "pinned"
+    assert _best(fixtures[:1] + fixtures[2:], "GET", "/users/7",
+                 {}, None, o).id == "exact"
+    assert _best(fixtures[1:], "GET", "/users/7", {}, None, o).id == "pinned"
+
+
+def test_27_priority_round_trips_through_fixtures():
+    from mockrelay._06 import _01 as Spec
+    from mockrelay._06 import _06 as Fx
+    fx = Fx(id="p", upstream="u",
+            match=Spec(method="GET", path="/x", priority=3),
+            request=_04(method="GET", path="/x"),
+            response=_05(status=200))
+    raw = fx._07()
+    assert raw["match"]["priority"] == 3
+    back = Fx._08(raw)
+    assert back.match.priority == 3
+    assert Fx._08(Fx(id="q", upstream="u",
+                     match=Spec(method="GET", path="/x", priority="7"),
+                     request=_04(method="GET", path="/x"),
+                     response=_05(status=200))._07()).match.priority == 7
+    assert Fx._08(Fx(id="r", upstream="u",
+                     match=Spec(method="GET", path="/x", priority="nope"),
+                     request=_04(method="GET", path="/x"),
+                     response=_05(status=200))._07()).match.priority is None
+    plain = Fx(id="s", upstream="u", match=Spec(method="GET", path="/x"),
+               request=_04(method="GET", path="/x"),
+               response=_05(status=200))._07()
+    assert "priority" not in plain["match"]
+
+
+def test_28_priority_differentiates_fixture_ids():
+    from mockrelay._10 import _04 as Store
+    from mockrelay._06 import _01 as Spec
+    a = Spec(method="GET", path="/x")
+    b = Spec(method="GET", path="/x", priority=2)
+    assert Store._09("u", a) == Store._09("u", Spec(method="GET", path="/x"))
+    assert Store._09("u", a) != Store._09("u", b)
+
+
+def test_29_rank_reports_priority_and_keeps_order():
+    fixtures = [
+        _fx("wild", "/users/*"),
+        _fx("pinned", "/users/*", priority=5),
+    ]
+    rows = rank(fixtures, "GET", "/users/7", {"page": ["1"]}, None,
+                Opts(order=("query", "path")))
+    assert rows[0]["id"] == "pinned"
+    assert rows[0]["priority"] == 5
+    assert rows[1]["priority"] == 0
+    assert Opts(order=("query", "path", "body", "literal")).order[0] == "query"

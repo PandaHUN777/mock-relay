@@ -35,3 +35,13 @@ A fixture may also carry its own overrides:
       "fuzzy_threshold": 0.9,
       "ignore_case": true
     }
+
+A fixture may also set an integer `priority`, which outranks the specificity
+criteria when several fixtures match. Higher wins, the default is `0`, and
+negative values push a fixture down:
+
+    "match": {
+      "method": "GET",
+      "path": "wildcard:/files/**",
+      "priority": 10
+    }

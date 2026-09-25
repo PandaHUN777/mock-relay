@@ -18,6 +18,7 @@ class _03:
         self.match_mode: Optional[str] = data.get("match_mode")
         self.fuzzy_threshold: Optional[float] = data.get("fuzzy_threshold")
         self.ignore_case: Optional[bool] = data.get("ignore_case")
+        self.match_priority: Optional[Any] = data.get("match_priority")
 
 
 class _04:
@@ -28,6 +29,7 @@ class _04:
         self.match_mode: Optional[str] = data.get("match_mode")
         self.fuzzy_threshold: Optional[float] = data.get("fuzzy_threshold")
         self.ignore_case: Optional[bool] = data.get("ignore_case")
+        self.match_priority: Optional[Any] = data.get("match_priority")
         self.routes: Dict[str, _03] = {
             k: _03(v) for k, v in (data.get("routes") or {}).items()
         }
@@ -64,6 +66,7 @@ class _06:
         self.ignore_case: bool = bool(d.get("ignore_case", False))
         self.fuzzy_enabled: bool = bool(d.get("fuzzy_enabled", False))
         self.smart_record_paths: bool = bool(d.get("smart_record_paths", False))
+        self.match_priority: Optional[Any] = d.get("match_priority")
         self.upstreams: Dict[str, _04] = {
             name: _04(name, u) for name, u in (d.get("upstreams") or {}).items()
         }
@@ -114,6 +117,7 @@ class _06:
             "fuzzy_threshold": self.fuzzy_threshold,
             "ignore_case": self.ignore_case,
             "fuzzy_enabled": self.fuzzy_enabled,
+            "match_priority": self.match_priority,
         }
         up = self.upstreams.get(upstream)
         if up:

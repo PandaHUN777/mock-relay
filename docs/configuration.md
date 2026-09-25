@@ -11,11 +11,12 @@ Full reference for mockrelay.yaml.
     sequential: false
 
     # Smart matching
-    match_mode: auto        # auto | exact | wildcard | regex | fuzzy | off
+    match_mode: auto        # auto | exact | wildcard | regex | fuzzy
     fuzzy_threshold: 0.86   # 0.0 - 1.0
     ignore_case: false
     fuzzy_enabled: false    # allow fuzzy fallback for bare paths in auto mode
     smart_record_paths: true
+    match_priority: [path, body, query, literal]   # see matching.md
 
     redact_headers:
       - authorization
@@ -31,9 +32,10 @@ Full reference for mockrelay.yaml.
 
 ## Matching settings
 
-`match_mode`, `fuzzy_threshold`, `ignore_case`, and `fuzzy_enabled` can be set
-globally, per upstream, and per route. The most specific definition wins, with
-route beating upstream beating global. See [Smart matching](matching.md).
+`match_mode`, `fuzzy_threshold`, `ignore_case`, `fuzzy_enabled`, and
+`match_priority` can be set globally, per upstream, and per route. The most
+specific definition wins, with route beating upstream beating global. See
+[Smart matching](matching.md).
 
     upstreams:
       gh:
@@ -44,7 +46,7 @@ route beating upstream beating global. See [Smart matching](matching.md).
           /v1/search:
             match_mode: fuzzy
             fuzzy_threshold: 0.8
-            ignore_case: true
+            match_priority: [query, path, body, literal]
 
 `routes` is a mapping of path prefix to overrides. The longest matching prefix
 wins.

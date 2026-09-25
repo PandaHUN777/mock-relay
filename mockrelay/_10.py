@@ -21,6 +21,9 @@ def _03(upstream: str, match: _01) -> str:
     mode = getattr(match, "match_mode", None)
     if mode:
         payload["mm"] = mode
+    prio = getattr(match, "priority", None)
+    if prio:
+        payload["pr"] = prio
     return hashlib.sha1(
         json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()[:12]
 

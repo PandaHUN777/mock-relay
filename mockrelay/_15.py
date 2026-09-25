@@ -133,6 +133,7 @@ def _19(args) -> None:
         "match_mode: auto\n"
         "fuzzy_threshold: 0.86\n"
         "ignore_case: false\n"
+        "match_priority: [path, body, query, literal]\n"
         "smart_record_paths: true\n"
         "upstreams:\n"
         "  gh:\n"
@@ -180,14 +181,16 @@ def _22(args) -> None:
     _04("query", json.dumps(query, default=str) if query else "{}")
     _04("body", json.dumps(body, default=str) if body is not None else "-")
     _04("mode", f"{opts.mode} (fuzzy>={opts.threshold})")
+    _04("priority", " > ".join(opts.order))
     _04("upstream", args.upstream or "(all)")
     print()
     if not rows:
         _06("warn", "no fixtures to match against")
         return
-    _05(["hit", "strategy", "score", "status", "id", "path"],
-        [[("yes" if r["matched"] else "no"), r["strategy"], r["score"],
-          r["status"], r["id"], r["checks"][1]["detail"]] for r in rows])
+    _05(["hit", "prio", "strategy", "score", "status", "id", "path"],
+        [[("yes" if r["matched"] else "no"), r["priority"], r["strategy"],
+          r["score"], r["status"], r["id"], r["checks"][1]["detail"]]
+         for r in rows])
     best = rows[0]
     print()
     if best["matched"]:

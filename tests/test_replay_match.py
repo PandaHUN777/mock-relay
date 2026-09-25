@@ -275,10 +275,87 @@ def test_10_match_options_precedence():
                 "ignore_case": False}}}}})
     assert cfg._12("gh", "/other") == {
         "match_mode": "wildcard", "fuzzy_threshold": 0.7,
-        "ignore_case": True, "fuzzy_enabled": False}
+        "ignore_case": True, "fuzzy_enabled": False, "match_priority": None}
     assert cfg._12("gh", "/v1/search/x") == {
         "match_mode": "fuzzy", "fuzzy_threshold": 0.95,
-        "ignore_case": False, "fuzzy_enabled": False}
+        "ignore_case": False, "fuzzy_enabled": False, "match_priority": None}
     assert cfg._12("unknown", "/x") == {
         "match_mode": "exact", "fuzzy_threshold": 0.5,
-        "ignore_case": False, "fuzzy_enabled": False}
+        "ignore_case": False, "fuzzy_enabled": False, "match_priority": None}
+
+
+def test_12_configured_priority_order_over_http():
+    fixtures = [
+        _fx("wildq", "wildcard:/users/*", body={"from": "wildq"},
+            query_subset={"page": ["1"]}),
+        _fx("plain", "/users/7", body={"from": "plain"}),
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        _, srv = _serve(td, fixtures, match_priority=["path", "body",
+                                                      "query", "literal"])
+        try:
+            port = srv.server_address[1]
+            st, hdrs, raw = _req(port, "/u/users/7?page=1")
+            assert st == 200
+            assert hdrs["X-MockRelay-Fixture"] == "plain"
+            assert json.loads(raw) == {"from": "plain"}
+        finally:
+            srv.shutdown()
+
+    with tempfile.TemporaryDirectory() as td:
+        _, srv = _serve(td, fixtures, match_priority=["query", "path",
+                                                      "body", "literal"])
+        try:
+            port = srv.server_address[1]
+            st, hdrs, raw = _req(port, "/u/users/7?page=1")
+            assert st == 200
+            assert hdrs["X-MockRelay-Fixture"] == "wildq"
+            assert hdrs["X-MockRelay-Match"] == "wildcard"
+            assert json.loads(raw) == {"from": "wildq"}
+        finally:
+            srv.shutdown()
+
+
+def test_13_fixture_priority_header_over_http():
+    with tempfile.TemporaryDirectory() as td:
+        _, srv = _serve(td, [
+            _fx("pinned", "wildcard:/files/**", body={"from": "pinned"},
+                priority=5),
+        ])
+        try:
+            port = srv.server_address[1]
+            st, hdrs, raw = _req(port, "/u/files/a/b")
+            assert st == 200
+            assert hdrs["X-MockRelay-Fixture"] == "pinned"
+            assert hdrs["X-MockRelay-Priority"] == "5"
+            assert json.loads(raw) == {"from": "pinned"}
+        finally:
+            srv.shutdown()
+
+    with tempfile.TemporaryDirectory() as td:
+        _, srv = _serve(td, [_fx("plain", "/x", body={})])
+        try:
+            port = srv.server_address[1]
+            st, hdrs, _ = _req(port, "/u/x")
+            assert st == 200
+            assert "X-MockRelay-Priority" not in hdrs
+        finally:
+            srv.shutdown()
+
+
+def test_14_admin_reports_priority_order():
+    with tempfile.TemporaryDirectory() as td:
+        cfg, proxy = _serve(td, [_fx("a", "/x", body={})],
+                            match_priority=["query", "path"])
+        admin = start_admin(State(cfg, Store(cfg.fixtures_dir), Metrics()))
+        try:
+            port = admin.server_address[1]
+            st, _, raw = _req(port, "/api/match?method=GET&path=%2Fx")
+            assert st == 200
+            out = json.loads(raw)
+            assert out["match_priority"][0] == "query"
+            assert "rank" in out["results"][0]
+            assert "priority" in out["results"][0]
+        finally:
+            admin.shutdown()
+            proxy.shutdown()
