@@ -16,7 +16,7 @@
 | _06.py | dataclasses |
 | _07.py | redaction |
 | _08.py | normalization |
-| _09.py | matcher |
+| _09.py | smart matcher |
 | _10.py | store |
 | _11.py | metrics |
 | _12.py | upstream client |
@@ -25,3 +25,18 @@
 | _15.py | CLI |
 | _16.py | exports |
 | _17.py | stats helpers |
+
+## Matching
+
+The matcher resolves options, then scores candidates rather than filtering
+them, so the most specific fixture wins.
+
+    config -> _05._12  -> MatchOptions
+    MatchSpec          -> _09._23  -> MatchOptions (fixture overrides base)
+    fixtures + request -> _09._22  -> ranked results
+
+`_22` is the entry point used by replay, `/api/match`, and `mockrelay match`.
+It delegates to `_21` per fixture, which returns a per-check breakdown for
+diagnostics, then sorts by matched, score, and ID.
+
+See [Smart matching](matching.md).

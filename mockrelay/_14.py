@@ -4,11 +4,13 @@ import json
 import socketserver
 import threading
 from typing import Dict, List
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 from ._13 import _18 as _01
 from ._13 import _29 as _02
 from ._12 import _06 as _03
+from ._09 import _22 as _11
+from ._09 import _29 as _12
 
 
 _04 = """<!doctype html><html><head><title>MockRelay</title>
@@ -95,6 +97,36 @@ def _05(state: _01):
                 })
             if self.path == "/api/recent":
                 return self._07(200, metrics._09())
+            if self.path.startswith("/api/match"):
+                p = urlparse(self.path)
+                q = parse_qs(p.query)
+                upstream = (q.get("upstream") or [None])[0]
+                method = (q.get("method") or ["GET"])[0].upper()
+                path = (q.get("path") or ["/"])[0]
+                qq: Dict[str, List[str]] = {}
+                for k, v in parse_qsl((q.get("query") or [""])[0],
+                                      keep_blank_values=True):
+                    qq.setdefault(k, []).append(v)
+                body = None
+                raw_body = (q.get("body") or [None])[0]
+                if raw_body is not None:
+                    try:
+                        body = json.loads(raw_body)
+                    except ValueError:
+                        body = raw_body
+                opts = _12(cfg._12(upstream or "", path))
+                rows = _11(list(store._07(upstream)), method, path, qq,
+                           body, opts)
+                return self._07(200, {
+                    "upstream": upstream,
+                    "method": method,
+                    "path": path,
+                    "match_mode": opts.mode,
+                    "fuzzy_threshold": opts.threshold,
+                    "ignore_case": opts.ignore_case,
+                    "fuzzy_enabled": opts.fuzzy_enabled,
+                    "results": rows,
+                })
             if self.path.startswith("/api/fixtures"):
                 upstream = None
                 if "?" in self.path:

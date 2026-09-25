@@ -9,9 +9,12 @@ class _01:
     path: str
     query_subset: Dict[str, List[str]] = field(default_factory=dict)
     body_contains: Optional[Dict[str, Any]] = None
+    match_mode: Optional[str] = None
+    fuzzy_threshold: Optional[float] = None
+    ignore_case: Optional[bool] = None
 
     def _02(self) -> Dict[str, Any]:
-        return asdict(self)
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
     @classmethod
     def _03(cls, d: Dict[str, Any]) -> "_01":
@@ -20,6 +23,9 @@ class _01:
             path=d["path"],
             query_subset=d.get("query_subset") or {},
             body_contains=d.get("body_contains"),
+            match_mode=d.get("match_mode"),
+            fuzzy_threshold=d.get("fuzzy_threshold"),
+            ignore_case=d.get("ignore_case"),
         )
 
 

@@ -15,6 +15,9 @@ class _03:
         self.latency_ms: Optional[int] = data.get("latency_ms")
         self.error_injection: Optional[Dict[str, Any]] = data.get("error_injection")
         self.mode: Optional[str] = data.get("mode")
+        self.match_mode: Optional[str] = data.get("match_mode")
+        self.fuzzy_threshold: Optional[float] = data.get("fuzzy_threshold")
+        self.ignore_case: Optional[bool] = data.get("ignore_case")
 
 
 class _04:
@@ -22,6 +25,9 @@ class _04:
         self.name = name
         self.base_url: str = data["base_url"]
         self.mode: Optional[str] = data.get("mode")
+        self.match_mode: Optional[str] = data.get("match_mode")
+        self.fuzzy_threshold: Optional[float] = data.get("fuzzy_threshold")
+        self.ignore_case: Optional[bool] = data.get("ignore_case")
         self.routes: Dict[str, _03] = {
             k: _03(v) for k, v in (data.get("routes") or {}).items()
         }
@@ -53,6 +59,11 @@ class _06:
         self.normalize_json_paths: List[str] = d.get("normalize_json_paths", [
             "$.id", "$.created", "$.request_id",
         ])
+        self.match_mode: str = str(d.get("match_mode", "auto"))
+        self.fuzzy_threshold: float = float(d.get("fuzzy_threshold", 0.86))
+        self.ignore_case: bool = bool(d.get("ignore_case", False))
+        self.fuzzy_enabled: bool = bool(d.get("fuzzy_enabled", False))
+        self.smart_record_paths: bool = bool(d.get("smart_record_paths", False))
         self.upstreams: Dict[str, _04] = {
             name: _04(name, u) for name, u in (d.get("upstreams") or {}).items()
         }
@@ -96,3 +107,25 @@ class _06:
     def _11(self, upstream: str) -> Optional[str]:
         up = self.upstreams.get(upstream)
         return up.base_url if up else None
+
+    def _12(self, upstream: str, path: str = "") -> Dict[str, Any]:
+        out: Dict[str, Any] = {
+            "match_mode": self.match_mode,
+            "fuzzy_threshold": self.fuzzy_threshold,
+            "ignore_case": self.ignore_case,
+            "fuzzy_enabled": self.fuzzy_enabled,
+        }
+        up = self.upstreams.get(upstream)
+        if up:
+            self._13(out, up)
+            if path:
+                ov = up._05(path)
+                if ov:
+                    self._13(out, ov)
+        return out
+
+    def _13(self, out: Dict[str, Any], src: Any) -> None:
+        for k in list(out):
+            v = getattr(src, k, None)
+            if v is not None:
+                out[k] = v

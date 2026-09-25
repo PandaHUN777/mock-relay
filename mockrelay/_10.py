@@ -4,21 +4,25 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from ._06 import _01 as _01
 from ._06 import _06 as _02
 
 
 def _03(upstream: str, match: _01) -> str:
-    payload = json.dumps({
+    payload: Dict[str, Any] = {
         "u": upstream,
         "m": match.method.upper(),
         "p": match.path,
         "q": {k: sorted(v) for k, v in sorted(match.query_subset.items())},
         "b": match.body_contains,
-    }, sort_keys=True, default=str)
-    return hashlib.sha1(payload.encode()).hexdigest()[:12]
+    }
+    mode = getattr(match, "match_mode", None)
+    if mode:
+        payload["mm"] = mode
+    return hashlib.sha1(
+        json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
 
 class _04:

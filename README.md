@@ -45,6 +45,39 @@ Point your app at the proxy:
 | `passthrough` | Forward only, no recording |
 | `hybrid` | Fixtures if matched, else live + record |
 
+## Smart matching
+
+Fixtures are ranked, not just filtered, so the most specific one wins.
+
+| Strategy | Pattern | Matches |
+|---|---|---|
+| exact | `/users/7` | that path only |
+| wildcard | `wildcard:/users/*` | one segment |
+| regex | `re:^/orders/\d+$` | pattern match |
+| fuzzy | `fuzzy:/custommer/prof` | close enough, above the threshold |
+
+`match_mode: auto` infers the strategy from the prefix, and never
+fuzzy-matches a bare path, so a typo cannot silently hit the wrong fixture.
+Bodies match on the keys you care about, with operators and JSONPath-style
+keys:
+
+```json
+"body_contains": {
+  "status": "paid",
+  "total": { "$gt": 100 },
+  "$.items[*].sku": "wildcard:A*"
+}
+```
+
+Check a request against the stored fixtures without starting a server:
+
+```bash
+mockrelay match /users/7
+mockrelay match /orders -m POST -b '{"total":500}'
+```
+
+Full reference: [docs/matching.md](docs/matching.md).
+
 ## CLI
 
 ```bash
@@ -53,6 +86,7 @@ mockrelay serve --mode replay
 mockrelay record
 mockrelay replay --latency 150
 mockrelay list
+mockrelay match /users/7
 mockrelay stats
 ```
 

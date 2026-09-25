@@ -23,4 +23,15 @@ Fields listed in normalize_json_paths become {{NORMALIZED}}.
 
 ## Matching
 
-Highest-specificity match wins.
+Highest-specificity match wins. See [Smart matching](matching.md) for
+strategies, JSON-aware `body_contains`, and how ties are broken.
+
+A fixture may also carry its own overrides:
+
+    "match": {
+      "method": "GET",
+      "path": "wildcard:/v1/users/*",
+      "match_mode": "wildcard",
+      "fuzzy_threshold": 0.9,
+      "ignore_case": true
+    }

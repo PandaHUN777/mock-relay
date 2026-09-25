@@ -16,6 +16,10 @@ from ._06 import _06 as _05
 from ._07 import _05 as _06
 from ._07 import _07 as _07
 from ._08 import _02 as _08
+from ._09 import _21 as _33
+from ._09 import _22 as _32
+from ._09 import _29 as _34
+from ._09 import _25 as _35
 from ._09 import _05 as _09
 from ._09 import _06 as _10
 from ._10 import _04 as _11
@@ -48,7 +52,8 @@ def _19(state: _18):
             return
 
         def _21(self):
-            parts = self.path.lstrip("/").split("/", 1)
+            raw_target = urlparse(self.path)
+            parts = raw_target.path.lstrip("/").split("/", 1)
             if not parts or not parts[0]:
                 return self._26(404, {"error": "missing upstream prefix"})
             upstream = parts[0]
@@ -62,13 +67,13 @@ def _19(state: _18):
             latency = cfg._09(upstream, norm_path)
             err_inj = cfg._10(upstream, norm_path)
             method = self.command
+            opts = _34(cfg._12(upstream, norm_path))
 
             cl = int(self.headers.get("Content-Length", 0) or 0)
             raw = self.rfile.read(cl) if cl else b""
 
-            parsed = urlparse(self.path)
             q_multi: Dict[str, List[str]] = {}
-            for k, v in parse_qsl(parsed.query, keep_blank_values=True):
+            for k, v in parse_qsl(raw_target.query, keep_blank_values=True):
                 q_multi.setdefault(k, []).append(v)
             req_body = _13(raw, self.headers.get("content-type", ""))
 
@@ -84,24 +89,31 @@ def _19(state: _18):
                 if cfg.sequential:
                     with state.lock:
                         hit = _10(fixtures, method, norm_path, q_multi, req_body,
-                                  state.counter)
+                                  state.counter, opts)
                 else:
-                    hit = _09(fixtures, method, norm_path, q_multi, req_body)
+                    hit = _09(fixtures, method, norm_path, q_multi, req_body, opts)
                 if hit:
                     if latency:
                         time.sleep(latency / 1000.0)
+                    info = _33(hit, method, norm_path, q_multi, req_body, opts)
                     metrics._06(upstream, hit.response.status, "replay")
                     metrics._07(method, norm_path, hit.response.status, "replay")
-                    return self._27(hit.response)
+                    return self._27(hit.response, hit.id, info)
                 if mode == "replay":
                     metrics._06(upstream, 501, "replay")
                     metrics._07(method, norm_path, 501, "replay")
-                    return self._26(501, {"error": "no fixture matched",
-                                          "method": method, "path": norm_path})
+                    miss = _32(fixtures, method, norm_path, q_multi, req_body, opts)
+                    return self._26(501, {
+                        "error": "no fixture matched",
+                        "method": method,
+                        "path": norm_path,
+                        "match_mode": opts.mode,
+                        "nearest": [m["id"] for m in miss[:5]],
+                    })
 
             target_url = base_url.rstrip("/") + norm_path
-            if parsed.query:
-                target_url += "?" + parsed.query
+            if raw_target.query:
+                target_url += "?" + raw_target.query
             headers = {k: v for k, v in self.headers.items()
                        if k.lower() not in _15}
             try:
@@ -123,8 +135,10 @@ def _19(state: _18):
                     bc = {k: v for k, v in list(req_body.items())[:5]
                           if not isinstance(v, (dict, list))}
 
-                match = _02(method=method, path=norm_path,
-                            query_subset=q_multi, body_contains=bc)
+                match_path = _35(norm_path) if cfg.smart_record_paths else norm_path
+                match = _02(method=method, path=match_path,
+                            query_subset=q_multi, body_contains=bc,
+                            match_mode=None if opts.mode == "auto" else opts.mode)
                 fixture = _05(
                     id=store._09(upstream, match),
                     upstream=upstream,
@@ -137,6 +151,8 @@ def _19(state: _18):
                     normalize=cfg.normalize_json_paths,
                 )
                 store._06(upstream, fixture)
+                hdrs = dict(hdrs)
+                hdrs["X-MockRelay-Match"] = "record"
 
             if latency:
                 time.sleep(latency / 1000.0)
@@ -148,8 +164,12 @@ def _19(state: _18):
             self._28(status, __import__("json").dumps(body_dict).encode(),
                      {"Content-Type": "application/json"})
 
-        def _27(self, rec):
+        def _27(self, rec, fid: str = "", info: Optional[Dict[str, Any]] = None):
             hdrs = {k: v for k, v in rec.headers.items() if k.lower() not in _15}
+            if info:
+                hdrs["X-MockRelay-Match"] = str(info.get("strategy") or "exact")
+                hdrs["X-MockRelay-Fixture"] = str(fid)
+                hdrs["X-MockRelay-Score"] = str(info.get("score") or 0)
             self._28(rec.status, _14(rec.body), hdrs)
 
         def _28(self, status: int, body: bytes, headers: Dict[str, str]):
