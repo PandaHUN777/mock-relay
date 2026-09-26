@@ -464,7 +464,7 @@ def _23(base: Optional[_07], m: Any) -> _07:
     ic = getattr(m, "ignore_case", None)
     return _07(
         mode=mode,
-        threshold=min(max(thr, b.threshold, 0.0), 1.0),
+        threshold=min(max(thr, 0.0), 1.0),
         ignore_case=b.ignore_case if ic is None else bool(ic),
         fuzzy_enabled=b.fuzzy_enabled or mode == "fuzzy",
         order=b.order,

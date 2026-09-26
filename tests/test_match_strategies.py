@@ -1,16 +1,17 @@
 from mockrelay._06 import _01, _04, _05, _06
+from mockrelay._09 import _03 as _match
+from mockrelay._09 import _05 as _best
+from mockrelay._09 import _06 as _seq
 from mockrelay._09 import _07 as Opts
 from mockrelay._09 import _12 as scalar
 from mockrelay._09 import _14 as body
 from mockrelay._09 import _20 as similarity
 from mockrelay._09 import _22 as rank
+from mockrelay._09 import _23 as resolve
 from mockrelay._09 import _25 as smartize
+from mockrelay._09 import _26_order as _order
 from mockrelay._09 import _28 as strategies
 from mockrelay._09 import _29 as build
-from mockrelay._09 import _26_order as _order
-from mockrelay._09 import _03 as _match
-from mockrelay._09 import _05 as _best
-from mockrelay._09 import _06 as _seq
 
 
 def _fx(fid: str, path: str, method: str = "GET", **kw):
@@ -206,17 +207,25 @@ def test_17_spec_overrides():
     assert _match(f, "GET", "/user/123", {}, None,
                   Opts(threshold=0.9))
     loose = _fx("b", "~=/user/1234", fuzzy_threshold=0.1)
-    assert not _match(loose, "GET", "/user/123", {}, None, strict)
+    assert _match(loose, "GET", "/user/123", {}, None, strict)
     tight = _fx("c", "~=/user/1234", fuzzy_threshold=0.94)
     assert _match(tight, "GET", "/user/123", {}, None, Opts(threshold=0.5))
-    assert not _match(tight, "GET", "/user/123", {}, None, strict)
+    assert _match(tight, "GET", "/user/123", {}, None, strict)
     ci = _fx("d", "/Users")
     assert not _match(ci, "GET", "/users", {}, None, strict)
     assert _match(ci, "GET", "/users", {}, None,
                   build({"ignore_case": True}))
 
 
-def test_18_build_clamps_bad_values():
+def test_18_spec_threshold_fallback_and_clamping():
+    base = Opts(threshold=0.5)
+    assert resolve(base, _fx("a", "/x").match).threshold == 0.5
+    assert resolve(base, _fx("b", "/x", fuzzy_threshold="bad").match).threshold == 0.5
+    assert resolve(base, _fx("c", "/x", fuzzy_threshold=2).match).threshold == 1.0
+    assert resolve(base, _fx("d", "/x", fuzzy_threshold=-1).match).threshold == 0.0
+
+
+def test_19_build_clamps_bad_values():
     o = build({"match_mode": "nope", "fuzzy_threshold": "bad"})
     assert o.mode == "auto"
     assert o.threshold == 0.86
@@ -226,7 +235,7 @@ def test_18_build_clamps_bad_values():
     assert build({"match_mode": "fuzzy"}).fuzzy_enabled is True
 
 
-def test_19_rank_and_probe():
+def test_20_rank_and_probe():
     o = Opts()
     fixtures = [_fx("a", "/x"), _fx("b", "/users/*")]
     rows = rank(fixtures, "GET", "/users/9", {}, None, o)
@@ -242,7 +251,7 @@ def test_19_rank_and_probe():
     assert miss[0]["score"] == 0
 
 
-def test_20_strategies_and_smartize():
+def test_21_strategies_and_smartize():
     assert strategies() == ("auto", "exact", "wildcard", "regex", "fuzzy")
     assert smartize("/users/123/posts") == "/users/*/posts"
     assert smartize("/t/8f1c2b3a-4c5d-6e7f-8091-a2b3c4d5e6f7") == "/t/*"
@@ -250,7 +259,7 @@ def test_20_strategies_and_smartize():
     assert smartize("") == ""
 
 
-def test_21_sequential_uses_smart_paths():
+def test_22_sequential_uses_smart_paths():
     o = Opts()
     fixtures = [
         _06(id="a", upstream="u", call_index=0,
@@ -268,14 +277,14 @@ def test_21_sequential_uses_smart_paths():
     assert _seq(fixtures, "GET", "/orders/2", {}, None, counter, o).id == "b"
 
 
-def test_22_literal_question_mark_is_not_a_wildcard():
+def test_23_literal_question_mark_is_not_a_wildcard():
     o = Opts()
     pat = "/search?page=2"
     assert scalar(pat, pat, o, "auto") is not None
     assert scalar(pat, "/searchXpage=2", o, "auto") is None
 
 
-def test_23_order_normalization():
+def test_24_order_normalization():
     assert _order(None) == ("path", "body", "query", "literal")
     assert _order([]) == ("path", "body", "query", "literal")
     assert _order(["query", "path"]) == ("query", "path", "body", "literal")
@@ -288,7 +297,7 @@ def test_23_order_normalization():
     assert build().order == ("path", "body", "query", "literal")
 
 
-def test_24_query_match_outranks_wildcard_when_ordered():
+def test_25_query_match_outranks_wildcard_when_ordered():
     fixtures = [
         _fx("wild_q", "/users/*", query_subset={"page": ["1"]}),
         _fx("exact", "/users/7"),
@@ -301,7 +310,7 @@ def test_24_query_match_outranks_wildcard_when_ordered():
     assert build({"match_priority": ["query", "path"]}).order[0] == "query"
 
 
-def test_25_body_ordered_first():
+def test_26_body_ordered_first():
     fixtures = [
         _fx("plain", "/x"),
         _fx("body", "/x", body_contains={"a": 1}),
@@ -311,7 +320,7 @@ def test_25_body_ordered_first():
     assert _best(fixtures, "GET", "/x", {}, {"a": 1}, o).id == "body"
 
 
-def test_26_priority_overrides_criteria():
+def test_27_priority_overrides_criteria():
     fixtures = [
         _fx("exact", "/users/7"),
         _fx("pinned", "/users/*", priority=10),
@@ -324,7 +333,7 @@ def test_26_priority_overrides_criteria():
     assert _best(fixtures[1:], "GET", "/users/7", {}, None, o).id == "pinned"
 
 
-def test_27_priority_round_trips_through_fixtures():
+def test_28_priority_round_trips_through_fixtures():
     from mockrelay._06 import _01 as Spec
     from mockrelay._06 import _06 as Fx
     fx = Fx(id="p", upstream="u",
@@ -349,7 +358,7 @@ def test_27_priority_round_trips_through_fixtures():
     assert "priority" not in plain["match"]
 
 
-def test_28_priority_differentiates_fixture_ids():
+def test_29_priority_differentiates_fixture_ids():
     from mockrelay._10 import _04 as Store
     from mockrelay._06 import _01 as Spec
     a = Spec(method="GET", path="/x")
@@ -358,7 +367,7 @@ def test_28_priority_differentiates_fixture_ids():
     assert Store._09("u", a) != Store._09("u", b)
 
 
-def test_29_rank_reports_priority_and_keeps_order():
+def test_30_rank_reports_priority_and_keeps_order():
     fixtures = [
         _fx("wild", "/users/*"),
         _fx("pinned", "/users/*", priority=5),
