@@ -1,3 +1,4 @@
+"""CLI entry point and argparse-based command handlers."""
 from __future__ import annotations
 import argparse
 import json
