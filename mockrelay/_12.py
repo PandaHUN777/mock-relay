@@ -5,8 +5,6 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional, Tuple
 
-from ._05 import _06 as _01
-
 
 def _02(raw: bytes, content_type: str) -> Any:
     if not raw:
