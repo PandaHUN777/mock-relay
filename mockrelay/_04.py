@@ -1,3 +1,4 @@
+"""Provides terminal user interface utilities, including text formatting, status logging, and animated loading spinners."""
 from __future__ import annotations
 import contextlib
 import sys
